@@ -326,16 +326,6 @@
     <a-entity light="type: point; intensity: 1.18; color: #73e4ff; distance: 48" position="-8 4 9"></a-entity>
     <a-entity light="type: point; intensity: 0.92; color: #ffe27d; distance: 24" position="0 1 5"></a-entity>
 
-    <a-entity billboard position="0 6.95 -2">
-      <a-plane width="10.8" height="1.0" color="#10172d" material="opacity:0.70; transparent:true"></a-plane>
-      <a-entity position="0 0.1 0.02" text="value: Fig. 3. Conceptual model of space-time relationship.; align: center; color: #ffe38b; width: 11.0;"></a-entity>
-    </a-entity>
-
-    <a-entity billboard position="0 6.25 -2">
-      <a-plane width="9.2" height="0.9" color="#10172d" material="opacity:0.68; transparent:true"></a-plane>
-      <a-entity position="0 0.08 0.02" text="value: Quest controls: left thumbstick moves; right thumbstick turns and tilts.; align: center; color: #d3dcff; width: 9.6;"></a-entity>
-    </a-entity>
-
     <a-entity id="stuGroup" position="0 2 0">
       <a-cylinder position="0 0 0" rotation="0 0 90" height="29.2" radius="0.03"
                   material="color: #ffffff; emissive: #ffffff; emissiveIntensity: 0.68; opacity: 0.92"></a-cylinder>
@@ -365,6 +355,11 @@
               material="color: #ffffff; emissive: #fff8d4; emissiveIntensity: 1.08; opacity: 0.90; transparent: true; side: double"></a-ring>
       <a-entity position="0 0 0" animated-oscilloscope-signal></a-entity>
       <a-entity position="-1.15 0 0" access-cone></a-entity>
+      <a-entity billboard position="0 -3.45 0.8">
+        <a-plane width="8.2" height="0.95" color="#10172d" material="opacity:0.74; transparent:true"></a-plane>
+        <a-entity position="0 0.08 0.02" text="value: Fig. 3. Conceptual model of space-time relationship.; align: center; color: #ffe38b; width: 9.2;"></a-entity>
+      </a-entity>
+
 
       <!-- Restored white label above the right-side panels -->
       <a-entity billboard position="9.35 4.85 1.3">
