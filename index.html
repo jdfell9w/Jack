@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STU Figure 3 WebXR v11</title>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+  <script>
+    AFRAME.registerComponent('billboard', {
+      tick: function () {
+        const cam = this.el.sceneEl.camera;
+        if (!cam) return;
+        this.el.object3D.lookAt(cam.position);
+      }
+    });
+
+    AFRAME.registerComponent('star-drift', {
+      schema: {speed: {default: 0.35}},
+      tick: function (time, dt) {
+        const p = this.el.object3D.position;
+        p.x -= this.data.speed * (dt / 1000);
+        if (p.x < -42) p.x = 42;
+      }
+    });
+
+    AFRAME.registerComponent('spawn-stars', {
+      init: function () {
+        const root = this.el;
+        const colors = ['#66d8ff','#ffd86b','#f9f7ff','#b98aff','#7dffc9'];
+        for (let i = 0; i < 340; i++) {
+          const s = document.createElement('a-sphere');
+          const x = (Math.random() - 0.5) * 88;
+          const y = (Math.random() - 0.18) * 38;
+          const z = (Math.random() - 0.5) * 86;
+          const r = 0.014 + Math.random() * 0.055;
+          const speed = 0.20 + Math.random() * 1.15;
+          s.setAttribute('radius', r);
+          s.setAttribute('position', `${x} ${y} ${z}`);
+          s.setAttribute('material', `shader: flat; color: ${colors[Math.floor(Math.random()*colors.length)]}; emissive: #ffffff; emissiveIntensity: 0.85; opacity: 0.95`);
+          s.setAttribute('star-drift', `speed: ${speed}`);
+          root.appendChild(s);
+        }
+      }
+    });
+
+    AFRAME.registerComponent('thick-grid-plane', {
+      init: function () {
+        const root = this.el;
+        const size = 10;
+        const half = size / 2;
+        const divisions = 10;
+        root.object3D.rotation.y = THREE.MathUtils.degToRad(8);
+
+        const surf = document.createElement('a-plane');
+        surf.setAttribute('width', size);
+        surf.setAttribute('height', size);
+        surf.setAttribute('rotation', '0 90 0');
+        surf.setAttribute('material', 'color: #7fffd4; opacity: 0.12; transparent: true; side: double; emissive: #7fffd4; emissiveIntensity: 0.42');
+        root.appendChild(surf);
+
+        const mkBox = (w,h,d,x,y,z,color,opacity) => {
+          const b = document.createElement('a-box');
+          b.setAttribute('width', w);
+          b.setAttribute('height', h);
+          b.setAttribute('depth', d);
+          b.setAttribute('position', `${x} ${y} ${z}`);
+          b.setAttribute('material', `color: ${color}; emissive: ${color}; emissiveIntensity: 1.0; opacity: ${opacity}; transparent: true`);
+          return b;
+        };
+
+        root.appendChild(mkBox(0.08, size, 0.03, 0, 0, -half, '#dffff4', 0.95));
+        root.appendChild(mkBox(0.08, size, 0.03, 0, 0,  half, '#dffff4', 0.95));
+        root.appendChild(mkBox(0.08, 0.08, size, 0, -half, 0, '#dffff4', 0.95));
+        root.appendChild(mkBox(0.08, 0.08, size, 0,  half, 0, '#dffff4', 0.95));
+
+        for (let i = 1; i < divisions; i++) {
+          const z = -half + (size * i / divisions);
+          const strong = (i === divisions / 2);
+          root.appendChild(mkBox(0.04, size, 0.02, 0, 0, z, strong ? '#eafff7' : '#88ffd7', strong ? 0.95 : 0.78));
+        }
+        for (let i = 1; i < divisions; i++) {
+          const y = -half + (size * i / divisions);
+          const strong = (i === divisions / 2);
+          root.appendChild(mkBox(0.04, 0.02, size, 0, y, 0, strong ? '#eafff7' : '#88ffd7', strong ? 0.95 : 0.78));
+        }
+
+        const surf2 = document.createElement('a-plane');
+        surf2.setAttribute('width', size);
+        surf2.setAttribute('height', size);
+        surf2.setAttribute('rotation', '0 90 0');
+        surf2.setAttribute('position', '-0.06 0 0');
+        surf2.setAttribute('material', 'color: #5ef0c4; opacity: 0.06; transparent: true; side: double; emissive: #5ef0c4; emissiveIntensity: 0.20');
+        root.appendChild(surf2);
+      }
+    });
+
+    AFRAME.registerComponent('animated-oscilloscope-signal', {
+      init: function () {
+        this.xMin = -5.25;
+        this.xMax = 5.25;
+        this.count = 150;
+        this.points = [];
+        this.glows = [];
+        this.cores = [];
+        this.linesGlow = [];
+        this.linesHot = [];
+
+        for (let i = 0; i < this.count; i++) {
+          const x = this.xMin + (this.xMax - this.xMin) * (i / (this.count - 1));
+          this.points.push({
+            x,
+            phase1: Math.random() * Math.PI * 2,
+            phase2: Math.random() * Math.PI * 2,
+            phase3: Math.random() * Math.PI * 2,
+            skew: (Math.random() * 2 - 1) * 0.22
+          });
+
+          const nearPresent = (i >= 72 && i <= 78);
+          const glow = document.createElement('a-sphere');
+          glow.setAttribute('radius', nearPresent ? 0.085 : 0.04);
+          glow.setAttribute('material', `color: #ff0000; emissive: #ff0000; emissiveIntensity: 1.35; opacity: 0.48; transparent: true`);
+          this.el.appendChild(glow);
+          this.glows.push(glow);
+
+          const core = document.createElement('a-sphere');
+          core.setAttribute('radius', nearPresent ? 0.042 : 0.02);
+          core.setAttribute('material', `color: ${nearPresent ? '#ffe5e5' : '#ff3232'}; emissive: ${nearPresent ? '#ffe5e5' : '#ff3232'}; emissiveIntensity: 1.75; opacity: 1`);
+          this.el.appendChild(core);
+          this.cores.push(core);
+
+          if (i < this.count - 1) {
+            const g = document.createElement('a-entity');
+            g.setAttribute('line', 'start: 0 0 0; end: 0 0 0; color: #ff0000; opacity: 0.60');
+            this.el.appendChild(g);
+            this.linesGlow.push(g);
+
+            const h = document.createElement('a-entity');
+            h.setAttribute('line', 'start: 0 0 0; end: 0 0 0; color: #ff3232; opacity: 1');
+            this.el.appendChild(h);
+            this.linesHot.push(h);
+          }
+        }
+
+        for (let i = 0; i < 3; i++) {
+          const ring = document.createElement('a-ring');
+          ring.setAttribute('radius-inner', 0.54 + i * 0.18);
+          ring.setAttribute('radius-outer', 0.56 + i * 0.18);
+          ring.setAttribute('rotation', '0 90 0');
+          ring.setAttribute('position', '0 0 0');
+          ring.setAttribute('material', `color: #fff1b8; emissive: #fff1b8; emissiveIntensity: 1.1; opacity: ${0.68 - i*0.16}; transparent: true; side: double`);
+          ring.setAttribute('animation', `property: rotation; to: 0 ${360 + i*25} 0; loop: true; dur: ${8200 + i*2500}; easing: linear`);
+          this.el.appendChild(ring);
+        }
+      },
+
+      tick: function (time) {
+        const sec = time / 1000;
+        const positions = [];
+        for (let i = 0; i < this.count; i++) {
+          const p = this.points[i];
+          const x = p.x;
+          const env = 0.16 + 0.40 * Math.exp(-Math.pow((x / 2.5), 2)) + 0.22 * Math.exp(-Math.pow((x - 1.7) / 1.45, 2));
+          const mod = 0.92 + 0.18 * Math.sin(sec * 1.4 + x * 0.6);
+          const y = (
+            Math.sin((sec * 3.2) + x * 5.2 + p.phase1) * 0.24 +
+            Math.sin((sec * 8.2) + x * 11.0 + p.phase2) * 0.12 +
+            Math.sin((sec * 15.5) + x * 18.0 + p.phase3) * 0.05 +
+            p.skew
+          ) * env * mod;
+          const z = (
+            Math.sin((sec * 2.4) + x * 2.2 + p.phase2) * 0.055 +
+            Math.cos((sec * 5.0) + x * 6.4 + p.phase3) * 0.018
+          ) * env;
+
+          positions.push({x, y, z});
+          this.glows[i].setAttribute('position', `${x} ${y} ${z}`);
+          this.cores[i].setAttribute('position', `${x} ${y} ${z}`);
+        }
+
+        for (let i = 0; i < this.count - 1; i++) {
+          const a = positions[i], b = positions[i + 1];
+          this.linesGlow[i].setAttribute('line', `start: ${a.x} ${a.y} ${a.z}; end: ${b.x} ${b.y} ${b.z}; color: #ff0000; opacity: 0.60`);
+          this.linesHot[i].setAttribute('line', `start: ${a.x} ${a.y} ${a.z}; end: ${b.x} ${b.y} ${b.z}; color: #ff3232; opacity: 1`);
+        }
+      }
+    });
+
+    AFRAME.registerComponent('access-cone', {
+      init: function () {
+        const root = this.el;
+        const x0 = -2.2, rings = 9;
+        for (let i = 0; i < rings; i++) {
+          const f = i / (rings - 1);
+          const x = x0 + f * 2.15;
+          const ry = 0.24 + f * 1.12;
+          const rz = 0.22 + f * 0.92;
+          const ring = document.createElement('a-torus');
+          ring.setAttribute('radius', 0.5);
+          ring.setAttribute('radius-tubular', 0.013);
+          ring.setAttribute('scale', `0.01 ${ry} ${rz}`);
+          ring.setAttribute('rotation', '0 90 0');
+          ring.setAttribute('position', `${x} 0 0`);
+          ring.setAttribute('material', 'color: #ffd86b; emissive: #ffd86b; emissiveIntensity: 0.98; opacity: 0.42; transparent: true');
+          root.appendChild(ring);
+        }
+      }
+    });
+
+    AFRAME.registerComponent('curve-arrow', {
+      schema: {
+        start: {type: 'vec3'},
+        control: {type: 'vec3'},
+        end: {type: 'vec3'},
+        color: {default: '#62ff92'},
+        radius: {default: 0.08},
+        segments: {default: 26},
+        coneRadius: {default: 0.24},
+        coneHeight: {default: 0.54}
+      },
+      init: function () {
+        const s = this.data;
+        const start = new THREE.Vector3(s.start.x, s.start.y, s.start.z);
+        const control = new THREE.Vector3(s.control.x, s.control.y, s.control.z);
+        const end = new THREE.Vector3(s.end.x, s.end.y, s.end.z);
+
+        const pts = [];
+        for (let i = 0; i <= s.segments; i++) {
+          const t = i / s.segments;
+          const p = new THREE.Vector3(
+            (1 - t) * (1 - t) * start.x + 2 * (1 - t) * t * control.x + t * t * end.x,
+            (1 - t) * (1 - t) * start.y + 2 * (1 - t) * t * control.y + t * t * end.y,
+            (1 - t) * (1 - t) * start.z + 2 * (1 - t) * t * control.z + t * t * end.z
+          );
+          pts.push(p);
+        }
+
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b = pts[i + 1];
+          const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
+          const dir = new THREE.Vector3().subVectors(b, a);
+          const len = dir.length();
+
+          const seg = document.createElement('a-cylinder');
+          seg.setAttribute('radius', s.radius);
+          seg.setAttribute('height', len);
+          seg.setAttribute('position', `${mid.x} ${mid.y} ${mid.z}`);
+          seg.setAttribute('material', `color:${s.color}; emissive:${s.color}; emissiveIntensity:1.25`);
+
+          const q = new THREE.Quaternion();
+          q.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+          const e = new THREE.Euler().setFromQuaternion(q, 'YXZ');
+          seg.setAttribute('rotation', `${THREE.MathUtils.radToDeg(e.x)} ${THREE.MathUtils.radToDeg(e.y)} ${THREE.MathUtils.radToDeg(e.z)}`);
+          this.el.appendChild(seg);
+        }
+
+        const tail = pts[pts.length - 2];
+        const head = pts[pts.length - 1];
+        const cone = document.createElement('a-cone');
+        cone.setAttribute('radius-bottom', s.coneRadius);
+        cone.setAttribute('radius-top', 0);
+        cone.setAttribute('height', s.coneHeight);
+        cone.setAttribute('position', `${head.x} ${head.y} ${head.z}`);
+        cone.setAttribute('material', `color:${s.color}; emissive:${s.color}; emissiveIntensity:1.35`);
+
+        const dir = new THREE.Vector3().subVectors(head, tail).normalize();
+        const q = new THREE.Quaternion();
+        q.setFromUnitVectors(new THREE.Vector3(0,1,0), dir);
+        const e = new THREE.Euler().setFromQuaternion(q, 'YXZ');
+        cone.setAttribute('rotation', `${THREE.MathUtils.radToDeg(e.x)} ${THREE.MathUtils.radToDeg(e.y)} ${THREE.MathUtils.radToDeg(e.z)}`);
+        this.el.appendChild(cone);
+      }
+    });
+
+    AFRAME.registerComponent('quest-nav', {
+      schema: { moveSpeed: {default: 4.0}, turnSpeed: {default: 70}, lookSpeed: {default: 55} },
+      init: function () {
+        this.leftInput = {x: 0, y: 0};
+        this.rightInput = {x: 0, y: 0};
+        this.camera = document.getElementById('camera');
+        this.leftHand = document.getElementById('leftHand');
+        this.rightHand = document.getElementById('rightHand');
+        if (this.leftHand) this.leftHand.addEventListener('thumbstickmoved', e => { this.leftInput.x = e.detail.x || 0; this.leftInput.y = e.detail.y || 0; });
+        if (this.rightHand) this.rightHand.addEventListener('thumbstickmoved', e => { this.rightInput.x = e.detail.x || 0; this.rightInput.y = e.detail.y || 0; });
+        const clearLeft = () => { this.leftInput.x = 0; this.leftInput.y = 0; };
+        const clearRight = () => { this.rightInput.x = 0; this.rightInput.y = 0; };
+        if (this.leftHand) { this.leftHand.addEventListener('thumbsticktouchend', clearLeft); this.leftHand.addEventListener('thumbstickup', clearLeft); }
+        if (this.rightHand) { this.rightHand.addEventListener('thumbsticktouchend', clearRight); this.rightHand.addEventListener('thumbstickup', clearRight); }
+        this.pitch = 0;
+      },
+      tick: function (time, dt) {
+        const seconds = dt / 1000;
+        const rigObj = this.el.object3D;
+        const yaw = rigObj.rotation.y;
+        const lx = Math.abs(this.leftInput.x) > 0.12 ? this.leftInput.x : 0;
+        const ly = Math.abs(this.leftInput.y) > 0.12 ? this.leftInput.y : 0;
+        if (lx !== 0 || ly !== 0) {
+          const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+          const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+          const move = new THREE.Vector3();
+          move.addScaledVector(forward, -ly * this.data.moveSpeed * seconds);
+          move.addScaledVector(right, lx * this.data.moveSpeed * seconds);
+          rigObj.position.add(move);
+        }
+        const rx = Math.abs(this.rightInput.x) > 0.12 ? this.rightInput.x : 0;
+        const ry = Math.abs(this.rightInput.y) > 0.12 ? this.rightInput.y : 0;
+        if (rx !== 0) rigObj.rotation.y -= THREE.MathUtils.degToRad(rx * this.data.turnSpeed * seconds);
+        if (this.camera && ry !== 0) {
+          this.pitch -= ry * this.data.lookSpeed * seconds;
+          this.pitch = Math.max(-65, Math.min(65, this.pitch));
+          this.camera.object3D.rotation.x = THREE.MathUtils.degToRad(this.pitch);
+        }
+      }
+    });
+  </script>
+</head>
+<body>
+  <a-scene renderer="colorManagement: true" background="color: #040711" spawn-stars>
+    <a-entity id="rig" position="0 1.6 14.5" quest-nav>
+      <a-camera id="camera" wasd-controls="acceleration: 22" look-controls="pointerLockEnabled: false"></a-camera>
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable"></a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable"></a-entity>
+    </a-entity>
+
+    <a-entity light="type: ambient; intensity: 1.08; color: #a9c3ff"></a-entity>
+    <a-entity light="type: point; intensity: 1.32; color: #ff9dca; distance: 48" position="8 6 9"></a-entity>
+    <a-entity light="type: point; intensity: 1.18; color: #73e4ff; distance: 48" position="-8 4 9"></a-entity>
+    <a-entity light="type: point; intensity: 0.92; color: #ffe27d; distance: 24" position="0 1 5"></a-entity>
+
+    <a-entity billboard position="0 6.95 -2">
+      <a-plane width="10.8" height="1.0" color="#10172d" material="opacity:0.70; transparent:true"></a-plane>
+      <a-entity position="0 0.1 0.02" text="value: Fig. 3. Conceptual model of space-time relationship.; align: center; color: #ffe38b; width: 11.0;"></a-entity>
+    </a-entity>
+
+    <a-entity billboard position="0 6.25 -2">
+      <a-plane width="9.2" height="0.9" color="#10172d" material="opacity:0.68; transparent:true"></a-plane>
+      <a-entity position="0 0.08 0.02" text="value: Quest controls: left thumbstick moves; right thumbstick turns and tilts.; align: center; color: #d3dcff; width: 9.6;"></a-entity>
+    </a-entity>
+
+    <a-entity id="stuGroup" position="0 2 0">
+      <a-cylinder position="0 0 0" rotation="0 0 90" height="29.2" radius="0.03"
+                  material="color: #ffffff; emissive: #ffffff; emissiveIntensity: 0.68; opacity: 0.92"></a-cylinder>
+      <a-cone position="14.9 0 0" rotation="0 0 -90" radius-bottom="0.16" radius-top="0" height="0.40"
+              material="color: #ffffff; emissive: #ffffff; emissiveIntensity: 0.72"></a-cone>
+
+      <a-entity billboard position="-13.4 0.55 0.15">
+        <a-plane width="2.4" height="0.72" color="#111622" material="opacity:0.74; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: PAST; align: center; color: #ffffff; width: 3.2;"></a-entity>
+      </a-entity>
+      <a-entity billboard position="12.8 0.55 0.15">
+        <a-plane width="2.7" height="0.72" color="#111622" material="opacity:0.74; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: FUTURE; align: center; color: #ffffff; width: 3.4;"></a-entity>
+      </a-entity>
+      <a-entity billboard position="15.8 0.60 0.15">
+        <a-plane width="2.2" height="0.72" color="#111622" material="opacity:0.74; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: TIME; align: center; color: #ffffff; width: 3.0;"></a-entity>
+      </a-entity>
+
+      <a-sphere radius="2.28" scale="2.62 1.20 1.30"
+                material="color: #8d5dff; opacity: 0.17; transparent: true; emissive: #7c56ff; emissiveIntensity: 0.48"></a-sphere>
+      <a-sphere radius="2.30" scale="2.62 1.20 1.30"
+                material="color: #8ce7ff; wireframe: true; opacity: 0.44; transparent: true; emissive: #8ce7ff; emissiveIntensity: 0.92"></a-sphere>
+
+      <a-entity position="0 0 0" thick-grid-plane></a-entity>
+      <a-ring position="0 0 0" rotation="0 90 0" radius-inner="0.82" radius-outer="0.90"
+              material="color: #ffffff; emissive: #fff8d4; emissiveIntensity: 1.08; opacity: 0.90; transparent: true; side: double"></a-ring>
+      <a-entity position="0 0 0" animated-oscilloscope-signal></a-entity>
+      <a-entity position="-1.15 0 0" access-cone></a-entity>
+
+      <!-- Right-side labels -->
+      <a-entity billboard position="9.4 2.95 1.3">
+        <a-plane width="6.2" height="1.35" color="#102235" material="opacity:0.82; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: VOLUME CONTAINING SPACE-TIME STU; align: center; color: #78e6ff; wrapCount: 23; width: 8.0;"></a-entity>
+      </a-entity>
+
+      <a-entity billboard position="9.3 1.05 1.3">
+        <a-plane width="6.2" height="1.35" color="#0f2014" material="opacity:0.82; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: INDIVIDUAL'S CURRENT POSITION; align: center; color: #62ff92; wrapCount: 22; width: 8.0;"></a-entity>
+      </a-entity>
+
+      <a-entity billboard position="9.2 -1.05 1.3">
+        <a-plane width="6.2" height="1.35" color="#2b1212" material="opacity:0.84; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: EMOTIONAL HISTORY INTENSITY; align: center; color: #ff4f4f; wrapCount: 22; width: 8.0;"></a-entity>
+      </a-entity>
+
+      <!-- Supporting labels -->
+      <a-entity billboard position="4.1 3.25 2.0">
+        <a-plane width="6.0" height="1.35" color="#0f1526" material="opacity:0.76; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: PLANE CONTAINING CURRENT 3-DIMENSIONAL SPACE (OUR REALITY); align: center; color: #ffffff; wrapCount: 28; width: 7.5;"></a-entity>
+      </a-entity>
+
+      <a-entity billboard position="-5.7 -2.35 1.45">
+        <a-plane width="5.5" height="1.3" color="#0f1526" material="opacity:0.76; transparent:true"></a-plane>
+        <a-entity position="0 0.05 0.02" text="value: EXPANDING ACCESS WITH LARGER PSI SIGNAL; align: center; color: #ffffff; wrapCount: 24; width: 7.0;"></a-entity>
+      </a-entity>
+
+      <!-- Curved arrows: cyan STU, green current-position to grid corner, red emotional history -->
+      <a-entity curve-arrow="start: 6.6 2.65 0.8; control: 5.1 3.5 0.7; end: 2.85 1.6 0.35; color: #78e6ff; radius: 0.08; coneRadius: 0.24; coneHeight: 0.56"></a-entity>
+      <a-entity curve-arrow="start: 6.55 0.95 0.8; control: 5.01 1.66 0.93; end: 1.09 4.01 3.97; color: #62ff92; radius: 0.08; coneRadius: 0.24; coneHeight: 0.56"></a-entity>
+      <a-entity curve-arrow="start: 6.45 -1.15 0.8; control: 4.3 -0.25 0.9; end: 1.72 -0.12 0.20; color: #ff4f4f; radius: 0.08; coneRadius: 0.24; coneHeight: 0.56"></a-entity>
+    </a-entity>
+  </a-scene>
+</body>
+</html>
